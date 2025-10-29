@@ -1,0 +1,45 @@
+# Visual Studio / Rider specific
+*.sln.DotSettings.user
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+.vs/
+.idea/
+
+# Build artifacts
+bin/
+obj/
+
+# User Secrets
+**/secrets.json
+
+# Test results and coverage
+TestResults/
+*.trx
+*.coverlet.json
+**/coverage.*
+
+# NuGet Packages
+packages/
+*.nupkg
+*.nuget.props
+*.nuget.targets
+
+# EF Core Migrations (Optional: Exclude auto-generated designer files if desired)
+**/Migrations/*Designer.cs
+
+# OS generated files
+*~
+*.swp
+*.bak
+*.orig
+Thumbs.db
+.DS_Store
+
+# Logs
+*.log
+logs/
+
+# Local publish folders
+publish/
