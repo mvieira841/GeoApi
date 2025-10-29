@@ -15,6 +15,7 @@ using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using System.Data;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using Testcontainers.MsSql;
@@ -150,8 +151,29 @@ public abstract class CustomWebApplicationFactory : IAsyncLifetime, IClassFixtur
 
             using var scope = Services.CreateScope();
             var services = scope.ServiceProvider;
-            var context = services.GetRequiredService<ApplicationDbContext>();
-            await context.Database.MigrateAsync();
+            var dbContext = services.GetRequiredService<ApplicationDbContext>();
+            await using var connection = dbContext.Database.GetDbConnection();
+
+            if (connection.State != ConnectionState.Open)
+            {
+                await connection.OpenAsync();
+            }
+
+            var hasAspNetRoles = connection
+                                    .GetSchema("Tables")
+                                    .Rows
+                                    .Cast<DataRow>()
+                                    .Any(r => r["TABLE_NAME"].ToString() == "AspNetRoles");
+
+            if (!hasAspNetRoles)
+            {
+                await dbContext.Database.EnsureCreatedAsync();
+            }
+            else
+            {
+                await dbContext.Database.MigrateAsync();
+            }
+
             var seeder = services.GetRequiredService<DataSeeder>();
             await seeder.SeedAsync();
         }

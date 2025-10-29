@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using System.Data;
 using Testcontainers.MsSql;
 
 namespace GeoApi.Tests.Integration.Common;
@@ -74,7 +75,28 @@ public abstract class CustomTestWebAppFactory : IAsyncLifetime, IClassFixture<Cu
 
             using var scope = Services.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-            await dbContext.Database.MigrateAsync();
+            await using var connection = dbContext.Database.GetDbConnection();
+
+            if (connection.State != ConnectionState.Open)
+            {
+                await connection.OpenAsync();
+            }
+
+            var hasAspNetRoles = connection
+                                    .GetSchema("Tables")
+                                    .Rows
+                                    .Cast<DataRow>()
+                                    .Any(r => r["TABLE_NAME"].ToString() == "AspNetRoles");
+
+            if (!hasAspNetRoles)
+            {
+                await dbContext.Database.EnsureCreatedAsync();
+            }
+            else
+            {
+                await dbContext.Database.MigrateAsync();
+            }
+
             var seeder = scope.ServiceProvider.GetRequiredService<DataSeeder>();
             await seeder.SeedAsync(includeCountriesAndCities: false);
         }
